@@ -8,7 +8,7 @@ const PLUGIN_NAME = 'gulp-seajs-r';
 // plugin level function (dealing with files)
 function exports(options) {
 
-  var base = '',
+  var base = '.',
       alias = {},
       paths = {},
       map = [],
@@ -30,7 +30,13 @@ function exports(options) {
       vars = options.vars;
   }
 
-  var onStart = function(file, enc, cb) {
+  var cachemods = {};
+
+  function parseModule(code){
+    
+  }
+
+  var each = function(file, enc, cb) {
 
     if(file.isNull()){
       cb();
@@ -54,7 +60,7 @@ function exports(options) {
   }
 
   // creating a stream through which each file will pass
-  var stream = through.obj(onStart,onEnd);
+  var stream = through.obj(each,onEnd);
 
   // returning the file stream
   return stream;
