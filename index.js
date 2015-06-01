@@ -5,6 +5,11 @@ var PluginError = gutil.PluginError;
 // consts
 const PLUGIN_NAME = 'gulp-seajs-r';
 
+var regdefine = /^\s*define\((.*)function\s*\(\s*(require)?/mg;
+var regdefineparam = /\s*(["']\w+["'])\s*(?:\s*,\s*)\[/;
+var regrequire = /require\(\s*([^\(\)]+)\s*\)/g;
+var txtsuffix = ['txt','html','htm','tpl'];
+
 // plugin level function (dealing with files)
 function exports(options) {
 
@@ -17,10 +22,10 @@ function exports(options) {
   if(options.base){
       base = options.base;
   }
-  if(opitons.alias){
+  if(options.alias){
       alias = options.alias;
   }
-  if(opitons.paths){
+  if(options.paths){
       paths = options.paths;
   }
   if(options.map){
@@ -32,8 +37,23 @@ function exports(options) {
 
   var cachemods = {};
 
-  function parseModule(code){
-    
+  function replaceContent(content,filepath,suffix){
+      var m;
+      if(txtsuffix.indexOf(suffix) > -1){
+
+      }else if(m = regdefine.exec(content)){
+          
+          if(!m[1] || !regdefineparam.exec(content)){
+              var deps = [];
+              if(m[2]){
+                  content.replace(regrequire,function(a,b){
+                      deps.push(b);
+                  });
+              }
+              content = content.replace(regdefine,'define("'+filepath+'",['+deps.join(',')+'],function(require');
+          }
+      }
+      return content;
   }
 
   var each = function(file, enc, cb) {
@@ -51,7 +71,11 @@ function exports(options) {
     // make sure the file goes through the next gulp plugin
     this.push(file);
     // tell the stream engine that we are done with this file
-    console.log(file.relative)
+    if(file.contents){
+        var content = replaceContent(file.contents.toString(),file.relative);
+        console.log(content);
+    }
+    
     cb();
   };
 
