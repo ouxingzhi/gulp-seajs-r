@@ -10,37 +10,24 @@ var regdefineparam = /\s*(["']\w+["'])\s*(?:\s*,\s*)\[/;
 var regrequire = /require\(\s*([^\(\)]+)\s*\)/g;
 var txtsuffix = ['txt','html','htm','tpl'];
 
+
 // plugin level function (dealing with files)
 function exports(options) {
-
-  var base = '.',
-      alias = {},
-      paths = {},
-      map = [],
-      vars = {};
-  if(!options) options = {};
-  if(options.base){
-      base = options.base;
-  }
-  if(options.alias){
-      alias = options.alias;
-  }
-  if(options.paths){
-      paths = options.paths;
-  }
-  if(options.map){
-      map = options.map;
-  }
-  if(options.vars){
-      vars = options.vars;
+  var formatPath;
+  if(options && options.formatPath){
+      formatPath = options.formatPath;
   }
 
   var cachemods = {};
 
   function replaceContent(content,filepath,suffix){
       var m;
+      if(formatPath){
+          filepath = formatPath(filepath);
+      }
       if(txtsuffix.indexOf(suffix) > -1){
-
+          content = content.replace(/^\s+|\r|\n|\s+$/g,'').replace(/>\s+</g,'><').replace(/'/mg,"\\'");
+          content = 'define("'+filepath+'",\''+content+'\')'; 
       }else if(m = regdefine.exec(content)){
           
           if(!m[1] || !regdefineparam.exec(content)){
@@ -69,22 +56,20 @@ function exports(options) {
 
 
     // make sure the file goes through the next gulp plugin
-    this.push(file);
-    // tell the stream engine that we are done with this file
-    if(file.contents){
-        var content = replaceContent(file.contents.toString(),file.relative);
-        console.log(content);
-    }
     
+    // tell the stream engine that we are done with this file
+    var suffix = file.relative.split('.').pop();
+    if(file.contents){
+        var content = replaceContent(file.contents.toString(),file.relative,suffix);
+        file.contents = new Buffer(content);
+    }
+    this.push(file);
     cb();
   };
 
-  var onEnd = function(){
-    console.log('end',through.obj.length);
-  }
 
   // creating a stream through which each file will pass
-  var stream = through.obj(each,onEnd);
+  var stream = through.obj(each);
 
   // returning the file stream
   return stream;
