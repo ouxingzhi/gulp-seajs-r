@@ -9,11 +9,14 @@ var regdefine = /^\s*define\((.*)function\s*\(\s*(require)?/mg;
 var regdefineparam = /\s*(["']\w+["'])\s*(?:\s*,\s*)\[/;
 var regrequire = /require\(\s*([^\(\)]+)\s*\)/g;
 var txtsuffix = ['txt','html','htm','tpl'];
+var regquota = /["']+/g;
 
 
 // plugin level function (dealing with files)
 function exports(options) {
-  var formatPath;
+  var formatPath = function(a){
+      return a;
+  }
   if(options && options.formatPath){
       formatPath = options.formatPath;
   }
@@ -25,16 +28,20 @@ function exports(options) {
       if(formatPath){
           filepath = formatPath(filepath);
       }
+      //编译html模板
       if(txtsuffix.indexOf(suffix) > -1){
           content = content.replace(/^\s+|\r|\n|\s+$/g,'').replace(/>\s+</g,'><').replace(/'/mg,"\\'");
-          content = 'define("'+filepath+'",\''+content+'\')'; 
+          content = 'define("'+filepath+'",\''+content+'\')';
+      //修正js的头部
       }else if(m = regdefine.exec(content)){
           
           if(!m[1] || !regdefineparam.exec(content)){
               var deps = [];
               if(m[2]){
-                  content.replace(regrequire,function(a,b){
+                  content = content.replace(regrequire,function(a,b){
+                      b = '"'+formatPath(b.replace(regquota,''))+'"';
                       deps.push(b);
+                      return 'require('+b+')';
                   });
               }
               content = content.replace(regdefine,'define("'+filepath+'",['+deps.join(',')+'],function(require');
